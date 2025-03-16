@@ -7,18 +7,13 @@ public class ArgumentParser {
 
     public static Arguments parseArguments(String[] args, CommandType command) {
 
-        switch (command) {
-            case SCAN:
-                return parseScanArguments(args);
-            case SHUTDOWN:
-                return parseShutdownArguments(args);
-            case STATUS:
-                return parseStatusArguments(args);
-            case START:
-                return parseStartArguments(args);
-            default:
-                throw new IllegalArgumentException("Unknown command: " + command);
-        }
+        return switch (command) {
+            case SCAN -> parseScanArguments(args);
+            case SHUTDOWN -> parseShutdownArguments(args);
+            case STATUS -> parseStatusArguments(args);
+            case START -> parseStartArguments(args);
+            default -> throw new IllegalArgumentException("Unknown command: " + command);
+        };
 
     }
 

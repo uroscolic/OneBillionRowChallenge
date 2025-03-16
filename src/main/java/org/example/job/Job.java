@@ -6,7 +6,7 @@ import lombok.Data;
 public class Job {
 
     private String jobName;
-    private Status status = Status.PENDING;
+    private volatile Status status = Status.PENDING;
 
     @Override
     public String toString() {
