@@ -1,8 +1,10 @@
 package org.example.argument;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 public class ScanArguments implements Arguments {
 
     private double minTemperature;

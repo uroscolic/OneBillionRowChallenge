@@ -4,23 +4,18 @@ import org.example.model.SharedData;
 import org.example.model.WeatherMetrics;
 import org.example.utils.Printer;
 
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class ReportThread extends Thread {
 
     private final ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final SharedData sharedData;
-    private int counter = 0;
 
 
-    public ReportThread(ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap, SharedData sharedData, int counter) {
+    public ReportThread(ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap, SharedData sharedData) {
         this.stationDataMap = stationDataMap;
         this.sharedData = sharedData;
-        this.counter = counter;
     }
 
     @Override
@@ -28,9 +23,9 @@ public class ReportThread extends Thread {
 
         scheduler.scheduleAtFixedRate(
                 this::generateReport,
-                0,
-                10,
-                TimeUnit.SECONDS
+                1,
+                1,
+                TimeUnit.MINUTES
         );
     }
 
@@ -41,35 +36,26 @@ public class ReportThread extends Thread {
 
         synchronized (sharedData.monitor) {
 
-            while (sharedData.numberOfThreadsModifying.get() > 0) {
+            if (sharedData.numberOfThreadsModifying.get() > 0)
+                return;
 
-                if (stationDataMap.isEmpty())    // TODO: MOVE TO MAP
-                    System.out.println("No data to generate report");
+            System.out.println("Generating report");
 
-                try {
-                    sharedData.monitor.wait();
-                } catch (InterruptedException e) {
-                    System.err.println("ReportThread interrupted: " + e.getMessage());
-                }
+            try {
+                printer.printMapToCSVFile("src/main/resources/output/log.csv", "REPORT");
+
+                System.out.println("Report generated");
+            } catch (InterruptedException e) {
+                System.out.println("ReportThread interrupted: " + e.getMessage());
             }
-
-            System.out.println("Generating report " + counter);
-            printer.printMapToCSVFile("src/main/resources/output/log.csv", "REPORT" + " " + counter);
         }
 
-        System.out.println("Report " + counter + " generated");
     }
 
 
-    public void stopScheduler() {
-        scheduler.shutdown();
-        try {
-            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS))
-                scheduler.shutdownNow();
-
-        } catch (InterruptedException e) {
-            scheduler.shutdownNow();
-        }
+    public void stopReport() {
+        scheduler.shutdownNow();
+        interrupt();
     }
 
 }

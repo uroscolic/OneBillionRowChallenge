@@ -1,25 +1,25 @@
 package org.example;
 
-import org.example.argument.Arguments;
-import org.example.argument.ScanArguments;
+import org.example.argument.*;
 import org.example.argumentParser.ArgumentParser;
-import org.example.command.CommandType;
-import org.example.command.ScanCommand;
+import org.example.command.*;
+import org.example.model.SharedData;
+import org.example.model.WeatherMetrics;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class CLIThread implements Runnable {
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
-    private final String directoryPath;
+    private JobManager jobManager;
+    private DirectoryScanner directoryScanner;
+    private ReportThread reportThread;
+    private String directoryPath;
+    private ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap;
+    private SharedData sharedData;
+    private boolean isApplicationStarted = false;
 
     public CLIThread(String directoryPath) {
         this.directoryPath = directoryPath;
@@ -27,14 +27,11 @@ public class CLIThread implements Runnable {
 
     @Override
     public void run() {
-        Scanner scanner = new Scanner(System.in);
 
-        //scan --min 10 --max 20.0 --letter U --output uros.txt --job job1
-        //scan -m 0 -M 100.0 -l K -o uros.txt -j job1
+        Scanner scanner = new Scanner(System.in);
 
         while (true) {
 
-            System.out.print("> ");
             String input = scanner.nextLine().trim();
 
             if (input.isEmpty())
@@ -52,49 +49,82 @@ public class CLIThread implements Runnable {
 
                 try {
 
-                    if (command == CommandType.MAP) {
-                        System.out.println(command);
-                        continue;
-                    }
-
-                    if (command == CommandType.EXPORTMAP) {
-                        System.out.println(command);
-                        continue;
-                    }
-
                     Arguments arguments = ArgumentParser.parseArguments(argumentsWithoutCommand, command);
 
-                    if (command == CommandType.SCAN) {
+                    if (command == CommandType.START) {
+
+                        if (isApplicationStarted) {
+                            System.err.println("Application already started.");
+                            continue;
+                        }
+
+                        System.out.println("Starting application...");
+
+                        isApplicationStarted = true;
+
+                        this.sharedData = new SharedData();
+                        this.stationDataMap = sharedData.stationDataMap;
+                        this.jobManager = new JobManager();
+                        this.directoryScanner = new DirectoryScanner(directoryPath, sharedData);
+                        reportThread = new ReportThread(stationDataMap, sharedData);
+                        reportThread.start();
+                        directoryScanner.start();
+
+                        StartArguments startArguments = (StartArguments) arguments;
+                        StartCommand startCommand = new StartCommand(startArguments, jobManager, stationDataMap, sharedData);
+                        startCommand.call();
+                    }
+
+                    if (!isApplicationStarted) {
+                        System.err.println("Application not started.");
+                        continue;
+                    }
+
+                    if (command == CommandType.MAP) {
+                        MapCommand mapCommand = new MapCommand(stationDataMap, sharedData);
+                        jobManager.addTask(mapCommand);
+                    } else if (command == CommandType.EXPORTMAP) {
+                        ExportMapCommand exportMapCommand = new ExportMapCommand(stationDataMap, sharedData);
+                        jobManager.addTask(exportMapCommand);
+                    } else if (command == CommandType.SCAN) {
 
                         File directory = new File(directoryPath);
                         File[] files = directory.listFiles();
 
-                        ScanArguments scanArguments = (ScanArguments) arguments;
-                        List<Future<String>> futures = new ArrayList<>();
+                        if (arguments instanceof ScanArguments scanArguments) {
+                            if (files != null) {
+                                for (File file : files) {
+                                    if (file.isFile() && (file.getName().endsWith(".csv") || file.getName().endsWith(".txt"))) {
 
+                                        ScanCommand scanCommand = new ScanCommand(file.getAbsolutePath(), scanArguments, sharedData);
 
-                        if (files != null) {
-                            for (File file : files) {
-                                if (file.isFile() && (file.getName().endsWith(".csv") || file.getName().endsWith(".txt"))) {
+                                        if (jobManager.isJobNameTaken(scanCommand.getJobName())) {
+                                            System.err.println("Job name already taken: " + scanArguments.getJobName());
+                                            break;
+                                        }
 
-                                    ScanCommand scanCommand = new ScanCommand(file.getAbsolutePath(), scanArguments);
-                                    Future<String> future = executorService.submit(scanCommand);
-                                    futures.add(future);
+                                        jobManager.addTask(scanCommand);
+                                    }
                                 }
                             }
                         }
 
-                        try {
-                            for (Future<String> future : futures) {
-                                String result = future.get();
-                                System.out.println("ScanCommand result: " + result);
-                            }
-                        } catch (InterruptedException | ExecutionException e) {
-                            System.err.println("Error executing ScanCommand: " + e.getMessage());
-                        }
+                    } else if (command == CommandType.STATUS) {
 
+                        StatusArguments scanArguments = (StatusArguments) arguments;
+                        StatusCommand statusCommand = new StatusCommand(scanArguments, jobManager.getJobStatusMap());
 
+                        statusCommand.call();
+
+                    } else if (command == CommandType.SHUTDOWN) {
+
+                        ShutdownArguments shutdownArguments = (ShutdownArguments) arguments;
+                        ShutdownCommand shutdownCommand = new ShutdownCommand(shutdownArguments, jobManager, directoryScanner, reportThread);
+                        shutdownCommand.call();
+
+                        break;
                     }
+
 
                 } catch (IllegalArgumentException e) {
                     System.err.println("Error: " + e.getMessage());
@@ -102,11 +132,11 @@ public class CLIThread implements Runnable {
 
             } catch (IllegalArgumentException e) {
                 System.err.println("Unknown command: " + commandParts[0]);
-                executorService.shutdown();
-                break;  //TODO remove this line, it's here just to stop the infinite loop
             }
         }
 
         scanner.close();
     }
+
+
 }

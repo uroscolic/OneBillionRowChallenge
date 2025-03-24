@@ -1,27 +1,17 @@
 package org.example;
 
-import org.example.argument.ScanArguments;
-import org.example.command.ScanCommand;
-import org.example.model.SharedData;
-import org.example.model.WeatherMetrics;
 import org.example.utils.ConfigReader;
-import org.example.utils.Printer;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.*;
 
 public class Main {
 
     public static void main(String[] args) {
 
-        //src/main/resources/measurements_small.txt
-        ConfigReader configReader = new ConfigReader("src/main/resources/config/config.txt");
 
+        ConfigReader configReader = new ConfigReader("src/main/resources/config/config.txt");
 
         String directoryPath = configReader.getValue("directory_path");
 
@@ -38,47 +28,12 @@ public class Main {
                 directoryPath = scanner.nextLine();
 
             }
-            scanner.close();
+
             configReader.setValue("directory_path", directoryPath);
             configReader.saveConfig();
         }
 
-        ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap = new ConcurrentSkipListMap<>();
-
-//        DirectoryScanner directoryWatcher = new DirectoryScanner(directoryPath);
-//        directoryWatcher.start();
-//        SharedData sharedData = new SharedData();
-//
-//        ReaderThread readerThread = new ReaderThread(stationDataMap, sharedData, "src/main/resources/measurements_small.txt");
-//        ReaderThread readerThread2 = new ReaderThread(stationDataMap, sharedData, "src/main/resources/measurements_medium.txt");
-//        ReaderThread readerThread3 = new ReaderThread(stationDataMap, sharedData, "src/main/resources/measurements_small.txt");
-//        ReaderThread readerThread4 = new ReaderThread(stationDataMap, sharedData, "src/main/resources/measurements_medium.txt");
-//
-//        ReportThread reportThread = new ReportThread(stationDataMap, sharedData, 1);
-//        ReportThread reportThread2 = new ReportThread(stationDataMap, sharedData, 2);
-//
-//        readerThread.start();
-//        readerThread2.start();
-//        readerThread3.start();
-//        readerThread4.start();
-//        reportThread.start();
-//        reportThread2.start();
-//
-//        try {
-//            readerThread.join();
-//            readerThread2.join();
-//            readerThread3.join();
-//            readerThread4.join();
-//            Thread.sleep(10 * 1000);
-//            reportThread.stopScheduler();
-//            reportThread2.stopScheduler();
-//
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//
-//        Printer printer = new Printer(stationDataMap);
-//        printer.printMapToConsole();
+        System.out.println("Starting application with directory path: " + directoryPath);
 
         CLIThread cliThread = new CLIThread(directoryPath);
         Thread thread = new Thread(cliThread);
@@ -87,11 +42,8 @@ public class Main {
         try {
             thread.join();
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            System.out.println("Main thread interrupted");
         }
-
-
-
 
     }
 }

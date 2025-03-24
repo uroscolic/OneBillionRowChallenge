@@ -1,4 +1,4 @@
-package org.example.job;
+package org.example.command;
 
 public enum Status {
 

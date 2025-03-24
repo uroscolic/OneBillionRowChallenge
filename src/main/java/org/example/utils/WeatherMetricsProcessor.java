@@ -6,7 +6,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 public class WeatherMetricsProcessor {
 
-    public static void processLines(String lines, ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap) {
+
+    public static void processLines(String lines, ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap, String fileName) {
 
         String[] data = lines.split("\n");
 
@@ -34,8 +35,10 @@ public class WeatherMetricsProcessor {
                 return weatherMetrics;
 
             });
+
         }
     }
+
 
     public static boolean isNumeric(String str) {
         try {

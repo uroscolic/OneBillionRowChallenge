@@ -13,13 +13,15 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 public class Printer {
 
-    private final ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap;
+    private ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap;
 
     public Printer(ConcurrentSkipListMap<Character, WeatherMetrics> stationDataMap) {
         this.stationDataMap = stationDataMap;
     }
 
-    public void printMapToTxtFile(String filePath) {
+    public Printer(){}
+
+    public void printMapToTxtFile(String filePath) throws InterruptedException {
 
         Path path = Paths.get(filePath);
 
@@ -37,6 +39,10 @@ public class Printer {
             var entries = stationDataMap.entrySet().toArray(new java.util.Map.Entry[0]);
 
             for (int i = 0; i < entries.length; i++) {
+
+                if (Thread.interrupted())
+                    throw new InterruptedException("Printing to file was interrupted.");
+
 
                 counter = getCounter(line, counter, entries, i);
 
@@ -58,7 +64,7 @@ public class Printer {
         }
     }
 
-    public void printMapToCSVFile(String filePath, String type) {
+    public void printMapToCSVFile(String filePath, String type) throws InterruptedException {
 
         Path path = Paths.get(filePath);
         try {
@@ -69,13 +75,17 @@ public class Printer {
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true))) {
 
-            if(!Files.exists(path) || Files.size(path) == 0)
+            if (!Files.exists(path) || Files.size(path) == 0)
                 writer.write("Letter, Station count, Sum");
 
             writer.newLine();
 
             var entries = stationDataMap.entrySet().toArray(new java.util.Map.Entry[0]);
+
             for (int i = 0; i < entries.length; i++) {
+
+                if (Thread.interrupted())
+                    throw new InterruptedException("Printing to file was interrupted.");
 
                 var entry = entries[i];
                 Character key = (Character) entry.getKey();
@@ -98,12 +108,12 @@ public class Printer {
 
     }
 
-    public void printMapToConsole() {
+    public void printMapToConsole(ConcurrentSkipListMap<Character, WeatherMetrics> map) {
         StringBuilder line = new StringBuilder();
         final int groupSize = 2;
         int counter = 0;
 
-        var entries = stationDataMap.entrySet().toArray(new java.util.Map.Entry[0]);
+        var entries = map.entrySet().toArray(new java.util.Map.Entry[0]);
 
         for (int i = 0; i < entries.length; i++) {
 
@@ -122,6 +132,12 @@ public class Printer {
             System.out.println(line);
         }
     }
+
+    public void printMapToConsole() {
+        printMapToConsole(stationDataMap);
+    }
+
+
 
     private int getCounter(StringBuilder line, int counter, Map.Entry[] entries, int i) {
         var entry = entries[i];

@@ -12,7 +12,7 @@ public class ArgumentParser {
             case SHUTDOWN -> parseShutdownArguments(args);
             case STATUS -> parseStatusArguments(args);
             case START -> parseStartArguments(args);
-            default -> throw new IllegalArgumentException("Unknown command: " + command);
+            case MAP, EXPORTMAP -> null;
         };
 
     }
@@ -82,6 +82,9 @@ public class ArgumentParser {
                     throw new IllegalArgumentException("Unknown argument: " + args[i]);
             }
         }
+
+        if (minTemp == null || maxTemp == null || letter == '\0' || outputFile == null || jobName == null)
+            throw new IllegalArgumentException("Missing arguments for SCAN command.");
 
         return new ScanArguments(minTemp, maxTemp, letter, outputFile, jobName);
     }

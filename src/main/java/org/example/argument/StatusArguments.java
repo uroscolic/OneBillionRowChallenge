@@ -1,5 +1,8 @@
 package org.example.argument;
 
+import lombok.Getter;
+
+@Getter
 public class StatusArguments implements Arguments {
 
     private String jobName;

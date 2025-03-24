@@ -22,5 +22,18 @@ public class WeatherMetrics {
         count.incrementAndGet();
     }
 
+    public void removeValue(WeatherMetrics value){
+
+        sum.add(-value.getSum().sum());
+
+        for(int i = 0 ; i < value.getCount().get(); i++)
+            count.decrementAndGet();
+    }
+
+    @Override
+    public String toString(){
+        return stationCharacter + " | sum: " + getSum() + " count: " + getCount();
+    }
+
 
 }
