@@ -65,8 +65,8 @@ public class ArgumentParser {
 
                     outputFile = args[++i];
 
-                    if (outputFile.isEmpty() || !outputFile.matches("^[a-zA-Z0-9_.-]+\\.(txt|csv)$"))
-                        throw new IllegalArgumentException("Output file must be a .txt or .csv file containing only letters, numbers '.', '-' or '_'.");
+                    if (outputFile.isEmpty() || !outputFile.matches("^[a-zA-Z0-9_.-]+\\.(txt)$"))
+                        throw new IllegalArgumentException("Output file must be a .txt file containing only letters, numbers '.', '-' or '_'.");
 
                     break;
                 case "--job":
@@ -83,7 +83,7 @@ public class ArgumentParser {
             }
         }
 
-        if (minTemp == null || maxTemp == null || letter == '\0' || outputFile == null || jobName == null)
+        if (letter == '\0' || outputFile == null || jobName == null)
             throw new IllegalArgumentException("Missing arguments for SCAN command.");
 
         return new ScanArguments(minTemp, maxTemp, letter, outputFile, jobName);
